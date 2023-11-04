@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <signal.h>
 
 #define MAX_CLI 10 // amount of clients that can connect to the server
 #define MAX_BUFF 1024 
@@ -18,6 +19,7 @@
 typedef struct CLIENT{
   int sockfd;
   int uid;
+  int tid;
   char name[16];
 
 }Client;

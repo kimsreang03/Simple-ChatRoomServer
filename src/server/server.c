@@ -8,9 +8,28 @@ Client* clients[MAX_CLI];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+int listenfd, connfd;
+struct sockaddr_in server;
+pthread_t thread;
+
+
+void when_interupt(){
+  
+  for(int i = 0 ; i < MAX_CLI; i++){
+    if(clients[i]){
+      close(clients[i]->sockfd);
+      free(clients[i]);
+    }
+  }
+
+  close(listenfd);
+  sleep(2);
+  exit(0);
+}
+
 
 int main(int argc, char* argv[]){
-
+  
 
   if(argc != 2){
     printf("usage: %s <port>\n", argv[0]);
@@ -19,10 +38,7 @@ int main(int argc, char* argv[]){
 
   int server_port = atoi(argv[1]);
 
-  int listenfd, connfd;
-  struct sockaddr_in server;
-  pthread_t thread;
-  
+  signal(SIGINT, when_interupt);
   //zero the server
   bzero(&server, sizeof(server));
   server.sin_family = AF_INET;
@@ -40,7 +56,7 @@ int main(int argc, char* argv[]){
   printf("waiting for connection on port %d ...\n", server_port);
   fflush(stdout);
 
-
+  
   while(1){
     //keep accepting for new connection in the main thread
     connfd = accept(listenfd, NULL, NULL);
@@ -58,6 +74,8 @@ int main(int argc, char* argv[]){
 
     add_client(cli);
     pthread_create(&thread, NULL, handling_client, (void*)cli);
+    cli->tid = thread;
+    pthread_join(thread, NULL);
     
     sleep(1);
   }
@@ -77,6 +95,7 @@ void cutnewline(char* buff){
 
 void* handling_client(void* cli){
 
+
   Client* client = (Client*) cli;
   char name[16];
   char buffer[MAX_BUFF+1];
@@ -87,7 +106,9 @@ void* handling_client(void* cli){
   }else{
     strcpy(client->name, name);
     cutnewline(client->name);
-    send_message(client->uid, "%s had joined the server.", client->name);
+    printf("%s has joined the server.\n", client->name);
+    fflush(stdout);
+    send_message(client->uid, "%s has joined the server.\n", client->name);
   }
 
   while(1){
@@ -96,22 +117,25 @@ void* handling_client(void* cli){
     int receive = recv(client->sockfd, buffer, MAX_BUFF, 0);
 
     if(receive > 0){
+
       buffer[receive] = 0;
       send_message(client->uid, "%s: %s", client->name, buffer);
+    
     }else
     if(receive == 0){
-      sprintf(buffer, "%s has left the server.\n", client->name);
-      printf("%s", buffer);
+      printf("%s has left the server.\n", client->name);
+      fflush(stdout);
       send_message(client->uid, buffer);
       leave_flag = 1;
     }
 
   }
   
+  int cli_tid = client->tid;
+
   remove_client(client->uid);
   free(client);
-  pthread_detach(pthread_self());
-
+  pthread_detach(cli_tid);
   return NULL;
 }// handling_client
 
