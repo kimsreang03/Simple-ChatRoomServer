@@ -75,7 +75,6 @@ int main(int argc, char* argv[]){
     add_client(cli);
     pthread_create(&thread, NULL, handling_client, (void*)cli);
     cli->tid = thread;
-    pthread_join(thread, NULL);
     
     sleep(1);
   }
@@ -97,15 +96,15 @@ void* handling_client(void* cli){
 
 
   Client* client = (Client*) cli;
-  char name[16];
   char buffer[MAX_BUFF+1];
+  int n;
   int leave_flag = 0;
 
-  if(recv(client->sockfd, name, 16, 0) <= 0){
+
+  if((n = recv(client->sockfd, buffer, 32, 0)) <= 0){
     leave_flag = 1;
   }else{
-    strcpy(client->name, name);
-    cutnewline(client->name);
+    strncpy(client->name, buffer, n);
     printf("%s has joined the server.\n", client->name);
     fflush(stdout);
     send_message(client->uid, "%s has joined the server.\n", client->name);
@@ -115,10 +114,10 @@ void* handling_client(void* cli){
     if(leave_flag) break;
 
     int receive = recv(client->sockfd, buffer, MAX_BUFF, 0);
+    buffer[receive] = 0;
 
     if(receive > 0){
 
-      buffer[receive] = 0;
       send_message(client->uid, "%s: %s", client->name, buffer);
     
     }else
@@ -127,15 +126,17 @@ void* handling_client(void* cli){
       fflush(stdout);
       send_message(client->uid, buffer);
       leave_flag = 1;
+    }else{
+      printf("failed to read\n");
     }
 
   }
-  
-  int cli_tid = client->tid;
 
+  //clean up 
   remove_client(client->uid);
   free(client);
-  pthread_detach(cli_tid);
+  pthread_detach(pthread_self());
+
   return NULL;
 }// handling_client
 
