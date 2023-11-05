@@ -107,7 +107,7 @@ void* handling_client(void* cli){
     strncpy(client->name, buffer, n);
     printf("%s has joined the server.\n", client->name);
     fflush(stdout);
-    send_message(client->uid, "%s has joined the server.\n", client->name);
+    send_message(client->uid, "\r\x1b[1;93m-> %s has joined the server.\n", client->name);
   }
 
   while(1){
@@ -118,13 +118,14 @@ void* handling_client(void* cli){
 
     if(receive > 0){
 
-      send_message(client->uid, "%s: %s", client->name, buffer);
+      send_message(client->uid, "\r\x1b[1;93m[%s]:\x1b[0m %s", client->name, buffer);
     
     }else
     if(receive == 0){
-      printf("%s has left the server.\n", client->name);
+      printf("\r-> %s has left the server.\n", client->name);
       fflush(stdout);
-      send_message(client->uid, buffer);
+      send_message(client->uid, "\r\x1b[1;93m-> %s has left the server.\n", client->name);
+
       leave_flag = 1;
     }else{
       printf("failed to read\n");

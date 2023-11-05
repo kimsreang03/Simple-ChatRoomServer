@@ -35,21 +35,21 @@ int main(int argc, char* argv[]){
   check_err(sockfd, "failed to create socket!\n");
 
   check_err(connect(sockfd, (struct sockaddr*)&server, sizeof(server)), "failed to connect!");
-  printf(">>> successfully connected to the server.\n");
+  write(1, "\x1b[1;93m>>> successfully connected to the server.\n", 49);  
 
   //get name from user and send to server
   char buffer[MAX_BUFF+1];
   int n;
 
-  write(0, ">>> enter your name: ", 21);
+  write(1, "\x1b[1;4;37menter your name:\x1b[24m ", 31);  
+  
   n = read(STDIN_FILENO, buffer, MAX_NAME); // get input name
   n--;
   buffer[n] = 0;
 
   send(sockfd, buffer, n, 0); //send to server
-  
-  printf(">>> your name is set to '%s'\n", buffer);
-  printf(">>> now you can chat with other connected user :)\n");
+  printf("\x1b[1;93m>>> your name is set to '%s'\n", buffer);
+  printf(">>> now you can chat with other connected user :)\n\n");
   fflush(stdout);
 
   pthread_create(&thread, NULL, (void*)recvfromserv, NULL);
@@ -57,12 +57,14 @@ int main(int argc, char* argv[]){
   while(1){
 
 
-    write(STDOUT_FILENO, "> ", 2);
+    write(STDOUT_FILENO, "\x1b[1;93m>\x1b[0m ", 13);
+    
     n = read(STDERR_FILENO, buffer, MAX_BUFF);
     buffer[n] = 0;
     if(!strcmp("exit\n", buffer)){
       // pthread_join(thread, NULL);
       close(sockfd);
+      puts("\x1b[0m");
       return 0;
     }
 
@@ -83,8 +85,9 @@ void recvfromserv(){
     n = recv(sockfd, buffer, MAX_BUFF, 0);
     buffer[n] = 0;
     if(n > 0)
-    write(STDOUT_FILENO, buffer, n);
-    write(STDOUT_FILENO, "> ", 2);
+    write(1, buffer, n);
+    write(STDOUT_FILENO, "\x1b[1;93m>\x1b[0m ", 13);
+
 
   }
 
